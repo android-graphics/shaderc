@@ -47,6 +47,7 @@ jobs:
           ref: ${{ github.event.inputs.RELEASE_TAG }}
 
       - name: Build
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           cd utils
@@ -57,12 +58,25 @@ jobs:
           cmake ../ -DSHADERC_SKIP_TESTS=ON -DSHADERC_SKIP_EXAMPLES=ON -DSHADERC_SKIP_COPYRIGHT_CHECK=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build . --config Release -j 12
 
+      - name: Build
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cd utils
+          python git-sync-deps
+          cd ..
+          mkdir build
+          cd build
+          # Windows fails to build if you dont build the whole project
+          cmake ../ -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release -j 12
+
       - name: Archive results
         if: runner.os == 'Linux'
         shell: bash
         run: |
           mkdir ${{ github.event.inputs.RELEASE_TAG }}
-          cp build/glslc ${{ github.event.inputs.RELEASE_TAG }}
+          cp build/glslc/glslc ${{ github.event.inputs.RELEASE_TAG }}
           tar -czvf ${{ github.event.inputs.RELEASE_TAG }}.tar.gz -C ${{ github.event.inputs.RELEASE_TAG }} `ls -A ${{ github.event.inputs.RELEASE_TAG }}`
 
       - name: Archive results
@@ -70,7 +84,7 @@ jobs:
         shell: bash
         run: |
           mkdir ${{ github.event.inputs.RELEASE_TAG }}
-          cp build/Release/glslc.exe ${{ github.event.inputs.RELEASE_TAG }}
+          cp build/glslc/Release/glslc.exe ${{ github.event.inputs.RELEASE_TAG }}
           7z a -r ${{ github.event.inputs.RELEASE_TAG }}.zip ./${{ github.event.inputs.RELEASE_TAG }}/*
 
       - name: Upload artifacts
